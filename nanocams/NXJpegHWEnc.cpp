@@ -42,16 +42,16 @@ int NX_JpegHWEncoding(void *dstVirt, int dstSize,
     memInfo.imgHeight = height;
     memInfo.luPhyAddr = yPhy;
     memInfo.luVirAddr = yVirt;
-    //memInfo.luStride = yStride;
-    memInfo.luStride = ALIGN(width, 16);  //YUV_STRIDE(width);
+    memInfo.luStride = yStride;
+    //memInfo.luStride = YUV_STRIDE(width);
     memInfo.cbPhyAddr = cbPhy;
     memInfo.cbVirAddr = cbVirt;
-    //memInfo.cbStride = cbStride;
-    memInfo.cbStride = YUV_STRIDE(width/2);
+    memInfo.cbStride = cbStride;
+    //memInfo.cbStride = YUV_STRIDE(width/2);
     memInfo.crPhyAddr = crPhy;
     memInfo.crVirAddr = crVirt;
-    //memInfo.crStride = crStride;
-    memInfo.crStride = YUV_STRIDE(width/2);
+    memInfo.crStride = crStride;
+    //memInfo.crStride = YUV_STRIDE(width/2);
 
     memset( &encInitParam, 0, sizeof(encInitParam) );
     encInitParam.width = width;
