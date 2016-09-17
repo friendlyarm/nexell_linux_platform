@@ -13,7 +13,7 @@ MAKEFLAGS +=
 # -----------------------------------------------------------------------
 # Checking host machine
 
-ifneq (armv7l,$(shell uname -p))
+ifneq (armv7l,$(shell uname -m))
 CROSS_COMPILE ?= arm-linux-
 GCC           := $(CROSS_COMPILE)gcc
 
