@@ -22,7 +22,7 @@ INSTALL			 = install
 
 # -----------------------------------------------------------------------
 
-CFLAGS			+= -Wall -O2 -std=c++11
+CFLAGS			+= -Wall -O2 -march=armv8-a -mfpu=neon-fp-armv8 -std=c++11
 CFLAGS			+= -I../include -I../kernel-headers
 
 ifeq ($(USE_STATIC_LIB),y)
@@ -37,7 +37,7 @@ LIBS			+= -L../libnxmalloc -lnxvmem
 LIBS			+= -L../libnxv4l2 -lv4l2-nexell
 LIBS			+= -L../libnxvpu -lnxvpu
 endif
-LIBS			+= -L../prebuilt -lnxvidrc $(OPENCVLIB)
+LIBS			+= -L../prebuilt -lnxvidrc -lm $(OPENCVLIB)
 
 
 # -----------------------------------------------------------------------
@@ -47,12 +47,15 @@ TARGET			 = nanocam_opencv
 
 all: $(TARGET)
 
+%.o: %.S
+	$(CPP) $(CFLAGS) -c -o $@ $<
+
 %.o: %.cpp
 	$(CPP) $(CFLAGS) -c -o $@ $<
 
-nanocam_opencv: nanocam_opencv.o
-	$(CC) $(LDFLAGS) $^ -o $@ $(LIBS) -lstdc++
 
+nanocam_opencv: nanocam_opencv.o yuv2rgb.neon.o
+	$(CPP) $(LDFLAGS) $^ -o $@ $(LIBS) -lstdc++
 
 install: $(TARGET)
 	$(INSTALL) -d 755 $(DESTDIR)/bin

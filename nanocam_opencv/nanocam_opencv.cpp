@@ -41,6 +41,7 @@
 #include "opencv2/opencv.hpp"
 
 #include <chrono>
+#include "yuv2rgb.neon.h"
 
 #define err(fmt, arg...)			\
 	fprintf(stderr, "E/%.3d: " fmt, __LINE__, ## arg)
@@ -54,8 +55,8 @@ static inline int get_size(int format, int num, int width, int height)
 {
 	int size;
 
-	width = ALIGN(width, 128);
-	height = ALIGN(height, 128);
+	width = ALIGN(width, 32);
+	height = ALIGN(height, 32);
 
 	switch (format) {
 		case V4L2_PIX_FMT_YUYV:
@@ -140,7 +141,7 @@ int alloc_buffers(int ion_fd, int count, struct nxp_vid_buffer *bufs,
 
 /*
  * Note:
- *  - S5P6818: clipper0 + YUV420M
+ *  - S5P6818: clipper0 + YUV422P
  */
 static int init_preview(int width, int height, int format)
 {
@@ -193,21 +194,12 @@ static int do_preview(struct nxp_vid_buffer *bufs, int width, int height,
 		cv::Mat out;
 		if (grey)
 		{
-			out = cv::Mat(height, width, CV_8UC1, buf->virt[0]);
+			out = cv::Mat(height, width, CV_8UC1, buf->virt[0], ALIGN(width, 32));
 		}
 		else
 		{
-			out = cv::Mat(height, width, CV_8UC3);
-			cv::Mat mYUV(height, width, CV_8UC2);
-			unsigned char* p = mYUV.ptr<unsigned char>(0);
-			for (int i = 0, j = 0; i < width * height * 2; i+= 4, j++)
-			{
-				p[i] = buf->virt[0][j*2];
-				p[i+1] = buf->virt[1][j];
-				p[i+2] = buf->virt[0][j*2+1];
-				p[i+3] = buf->virt[2][j];
-			}
-			cv::cvtColor(mYUV, out, CV_YUV2BGR_YUYV, 3);
+			out = cv::Mat(height, width, CV_8UC4);
+			yuv422_2_rgb8888_neon((uint8_t *)out.ptr<unsigned char>(0), (const uint8_t*)buf->virt[0], (const uint8_t*)buf->virt[1], (const uint8_t*)buf->virt[2], width, height, ALIGN(width, 32), width >> 1, width * 4);
 		}
 		cv::imshow("preview", out);
 		cv::waitKey(1);
@@ -223,19 +215,6 @@ static int do_preview(struct nxp_vid_buffer *bufs, int width, int height,
 
 /* MLC/video works improperly for YUV420M @800x600,1600x1200 */
 #define FMT_PREVIEW	V4L2_PIX_FMT_YUV422P
-
-#ifndef ARRAY_SIZE
-#define ARRAY_SIZE(arr)	(int)(sizeof(arr) / sizeof((arr)[0]))
-#endif
-
-/* Supported frame size for sensor - OV5640
-	{  640,  480, },
-	{  800,  600, },
-	{ 1280,  720, },
-	{ 1600, 1200, },
-	{ 2592, 1944, },
-*/
-
 
 // --------------------------------------------------------
 
@@ -253,10 +232,12 @@ int main(int argc, char *argv[])
 {
 	int width_p = 0, height_p = 0, count_p = 30;
 	int opt;
+	bool grey = false;
 
-	while (-1 != (opt = getopt(argc, argv, "p:c:n:o:d:h"))) {
+	while (-1 != (opt = getopt(argc, argv, "n:g:h"))) {
 		switch (opt) {
 			case 'n': count_p = atoi(optarg); break;
+			case 'g': grey = true; break;
 			case '?': fprintf(stderr, "\n");
 			case 'h': show_usage(argv[0]);  exit(0); break;
 			default:
@@ -295,7 +276,7 @@ int main(int argc, char *argv[])
 	auto baseTime = std::chrono::high_resolution_clock::now();
 	if (ret >= 0 && width_p > 0) {
 		init_preview(width_p, height_p, FMT_PREVIEW);
-		do_preview(bufs, width_p, height_p, count_p, true);
+		do_preview(bufs, width_p, height_p, count_p, grey);
 	}
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	int secondsPassed = (int)std::chrono::duration_cast<std::chrono::seconds>(currentTime - baseTime).count();
