@@ -22,7 +22,7 @@ GCC_VERSION_A = $(shell $(GCC) -dumpversion)
 ifneq (4.9.3,$(GCC_VERSION_A))
 $(warning *** $(GCC) $(GCC_VERSION_A) is *NOT* supported, please)
 $(warning *** switch it to "4.9.3" and try again.)
-$(error stopping build)
+# $(error stopping build)
 endif
 
 else
