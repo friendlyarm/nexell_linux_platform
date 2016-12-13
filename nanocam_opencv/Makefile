@@ -22,7 +22,8 @@ INSTALL			 = install
 
 # -----------------------------------------------------------------------
 
-CFLAGS			+= -Wall -O2 -march=armv8-a -mfpu=neon-fp-armv8 -std=c++11
+#CFLAGS			+= -Wall -O2 -march=armv8-a -mfpu=neon-fp-armv8 -std=c++11
+CFLAGS			+= -Wall -O2 -march=armv7-a -mfpu=neon -std=c++11
 CFLAGS			+= -I../include -I../kernel-headers
 
 ifeq ($(USE_STATIC_LIB),y)
